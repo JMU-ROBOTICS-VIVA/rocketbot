@@ -238,7 +238,8 @@ class SkibotNode(Node):
 
         self.cur_wrench = Wrench()
         self.thrust_start = 0
-        self.run()
+        ##created a timer instead of having a while loop in run, it will invoke the run every 0.1 seconds
+        self.timer = self.create_timer(.1,self.run)
 
     def wrench_callback(self, wrench):
         print(wrench)
@@ -272,59 +273,55 @@ class SkibotNode(Node):
 
         return response
 
+    ##removed the while loop from here as it was not needed
     def run(self):
         last_pub = 0.0
-        # rate = rospy.Rate(self.refresh_rate)
-        done = False
-        while not done:
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    done = True
+        ##destroy the timer when we get the quit from pygame
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.destroy_timer(self.timer)
 
-            ## wasnt really sure how to use the ros2 clock so just used time.sleep for now
-            
-            self.screen.fill((255, 255, 255))
+        self.screen.fill((255, 255, 255))
 
-            if ((self.cur_wrench.force.x != 0 or
-                self.cur_wrench.torque.z != 0) and
-                    time.time() > self.thrust_start + .6):
-                # Stop obeying last wrench after .6 seconds.
-                self.cur_wrench = Wrench()
+        if ((self.cur_wrench.force.x != 0 or
+            self.cur_wrench.torque.z != 0) and
+                time.time() > self.thrust_start + .6):
+            # Stop obeying last wrench after .6 seconds.
+            self.cur_wrench = Wrench()
 
-            self.rocket.update(self.cur_wrench, 1.0 / self.refresh_rate)
+        self.rocket.update(self.cur_wrench, 1.0 / self.refresh_rate)
 
-            if self.target_pose is not None:
-                pixel_pos = pos_to_pixels((self.target_pose.x,
-                                        self.target_pose.y))
-                angle = np.rad2deg(self.target_pose.theta)
-                surf = pygame.transform.rotozoom(self.arrow_img,
-                                                angle, 1.0)
-                self.screen.blit(surf, (pixel_pos[0] -
-                                        surf.get_rect().width * .5,
-                                        (pixel_pos[1] -
-                                        surf.get_rect().height * .5)))
-            elif self.target_point is not None:
-                pixel_pos = pos_to_pixels((self.target_point.x,
-                                        self.target_point.y))
-                pygame.draw.circle(self.screen, (0, 255, 0), pixel_pos, 5)
+        if self.target_pose is not None:
+            pixel_pos = pos_to_pixels((self.target_pose.x,
+                                    self.target_pose.y))
+            angle = np.rad2deg(self.target_pose.theta)
+            surf = pygame.transform.rotozoom(self.arrow_img,
+                                            angle, 1.0)
+            self.screen.blit(surf, (pixel_pos[0] -
+                                    surf.get_rect().width * .5,
+                                    (pixel_pos[1] -
+                                    surf.get_rect().height * .5)))
+        elif self.target_point is not None:
+            pixel_pos = pos_to_pixels((self.target_point.x,
+                                    self.target_point.y))
+            pygame.draw.circle(self.screen, (0, 255, 0), pixel_pos, 5)
 
-            pygame.display.flip()
+        pygame.display.flip()
 
-            if (time.time() > (last_pub + 1.0 / self.pub_rate -
-                            1 / self.refresh_rate)):
-                angle = (self.rocket.theta + np.pi) % (2 * np.pi) - np.pi
-                pose = Pose()
-                pose.x = self.rocket.pos[0]
-                pose.y = float(SCREEN_HEIGHT_PX) / PIXELS_PER_METER - self.rocket.pos[1]
-                pose.theta = angle
-                pose.x_velocity = self.rocket.vel[0]
-                pose.y_velocity = self.rocket.vel[1]
-                pose.theta_velocity = self.rocket.vel_rot
-                ##publish the message  
-                ##self.get_logger().info("pose: {}".format(pose))
-                self.loc_pub.publish(pose)
-                last_pub = time.time()
+        if (time.time() > (last_pub + 1.0 / self.pub_rate -
+                        1 / self.refresh_rate)):
+            angle = (self.rocket.theta + np.pi) % (2 * np.pi) - np.pi
+            pose = Pose()
+            pose.x = self.rocket.pos[0]
+            pose.y = float(SCREEN_HEIGHT_PX) / PIXELS_PER_METER - self.rocket.pos[1]
+            pose.theta = angle
+            pose.x_velocity = self.rocket.vel[0]
+            pose.y_velocity = self.rocket.vel[1]
+            pose.theta_velocity = self.rocket.vel_rot
+            ##publish the message  
+            self.loc_pub.publish(pose)
+            last_pub = time.time()
 
 ## Adjusted the init sequence as per other ros2 examples.
 def main(args=None):

@@ -109,6 +109,17 @@ class RocketNode(Node):
         self.thrust_start = 0
         pygame.init()
 
+        self.width = 480
+        self.screen = pygame.display.set_mode((self.width, self.width))
+        self.pub_rate = 10.0
+
+        pygame.display.set_caption('RocketBot 354')
+
+        self.rocket = Rocket(self.screen, (self.width/2, self.width),
+                             [0.0, 0.0])
+        self.last_pub = 0.0
+        self.done = False
+
         self.refresh_rate = 100
         # ROS2 recurring timer
         self.timer = self.create_timer(1/self.refresh_rate, self.run)
@@ -120,36 +131,28 @@ class RocketNode(Node):
         self.cur_thrust = np.array([thrust.x, -thrust.y])
 
     def run(self):
-        width = 480
-        screen = pygame.display.set_mode((width, width))
-        pub_rate = 10.0
-
-        pygame.display.set_caption('RocketBot 354')
-
-        rocket = Rocket(screen, (width/2, width), [0.0, 0.])
-        last_pub = 0.0
-        done = False
+    
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                done = True
+                self.done = True
 
-        screen.fill((255, 255, 255))
+        self.screen.fill((255, 255, 255))
         if ((self.cur_thrust[0] != 0 or self.cur_thrust[1] != 0) and
                 time.time() > self.thrust_start + .6):
             self.cur_thrust = np.array([0, 0])
-        rocket.update(self.cur_thrust)
+        self.rocket.update(self.cur_thrust)
 
         pygame.display.flip()
 
-        if time.time() > last_pub + 1.0/pub_rate - 1/self.refresh_rate:
+        if time.time() > self.last_pub + 1.0/self.pub_rate - 1/self.refresh_rate:
             # ROS2 Point iniitialization
             point = Point()
-            point.x = rocket.pos[0]
-            point.y = width - rocket.pos[1] - rocket.HEIGHT
+            point.x = self.rocket.pos[0]
+            point.y = self.width - self.rocket.pos[1] - self.rocket.HEIGHT
             point.z = 0.0
             self.loc_pub.publish(point)
-            last_pub = time.time()
+            self.last_pub = time.time()
 
 # Adjusted the init sequence as per other ros2 examples.
 

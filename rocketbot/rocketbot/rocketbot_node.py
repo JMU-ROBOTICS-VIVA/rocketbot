@@ -136,8 +136,7 @@ class RocketNode(Node):
         if ((self.cur_thrust[0] != 0 or self.cur_thrust[1] != 0) and time.time() > self.thrust_start + .6):
             self.cur_thrust = np.array([0, 0])
 
-        # self.rocket.update(self.cur_thrust)
-        self.rocket.update(np.array([0, -2]))
+        self.rocket.update(self.cur_thrust)
 
         pygame.display.flip()
 

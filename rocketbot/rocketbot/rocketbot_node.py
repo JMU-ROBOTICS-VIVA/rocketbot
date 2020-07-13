@@ -111,7 +111,7 @@ class RocketNode(Node):
 
         self.refresh_rate = 3
         # ROS2 recurring timer
-
+        # init
         self.width = 480
         self.screen = pygame.display.set_mode((self.width, self.width))
         self.pub_rate = 10.0

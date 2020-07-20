@@ -60,10 +60,10 @@ class Rocket(pygame.sprite.Sprite):
         rocket at the new position.
 
         """
-
         self.vel[1] += GRAVITY * ACC_MULTIPLIER
         self.vel += thrust * ACC_MULTIPLIER
         self.pos += self.vel
+        print(self.vel)
 
         if self.pos[0] > self._screen.get_width():
             self.pos[0] = self._screen.get_width()
@@ -71,7 +71,7 @@ class Rocket(pygame.sprite.Sprite):
         if self.pos[0] < 0:
             self.pos[0] = 0
             self.vel[0] = -self.vel[0]
-        if self.pos[1] > self._screen.get_height()-self.HEIGHT:
+        if self.pos[1] > self._screen.get_height() - self.HEIGHT:
             self.pos[1] = self._screen.get_height() - self.HEIGHT
             self.vel[1] = 0
         if self.pos[1] < 0:
@@ -80,14 +80,14 @@ class Rocket(pygame.sprite.Sprite):
 
         if thrust[0] != 0 or thrust[1] != 0:
             p1 = (self.pos[0], self.pos[1] + self.HEIGHT)
-            p2 = (self.pos[0] + self.WIDTH-1, self.pos[1] + self.HEIGHT)
-            p3 = (self.pos[0] + self.WIDTH/2,
+            p2 = (self.pos[0] + self.WIDTH - 1, self.pos[1] + self.HEIGHT)
+            p3 = (self.pos[0] + self.WIDTH / 2,
                   self.pos[1] + self.HEIGHT + self.FLAME_HEIGHT)
             pygame.draw.polygon(self._screen, (255, 0, 0), (p1, p2, p3), 0)
 
         p1 = self.pos
-        p2 = (self.pos[0] + self.WIDTH-1, self.pos[1])
-        p3 = (self.pos[0] + self.WIDTH/2, self.pos[1] - self.CONE_HEIGHT)
+        p2 = (self.pos[0] + self.WIDTH - 1, self.pos[1])
+        p3 = (self.pos[0] + self.WIDTH / 2, self.pos[1] - self.CONE_HEIGHT)
         pygame.draw.polygon(self._screen, (0, 0, 0), (p1, p2, p3), 0)
 
         pygame.draw.rect(self._screen, (0, 0, 0), Rect(self.pos, (10, 30)))
@@ -109,20 +109,20 @@ class RocketNode(Node):
         self.thrust_start = 0
         pygame.init()
 
+        self.refresh_rate = 3
+        # ROS2 recurring timer
+        # init
         self.width = 480
         self.screen = pygame.display.set_mode((self.width, self.width))
         self.pub_rate = 10.0
 
         pygame.display.set_caption('RocketBot 354')
 
-        self.rocket = Rocket(self.screen, (self.width/2, self.width),
-                             [0.0, 0.0])
+        self.rocket = Rocket(
+            self.screen, (self.width / 2, self.width), [0.0, 0.])
         self.last_pub = 0.0
-        self.done = False
 
-        self.refresh_rate = 100
-        # ROS2 recurring timer
-        self.timer = self.create_timer(1/self.refresh_rate, self.run)
+        self.timer = self.create_timer(1 / self.refresh_rate, self.run)
 
     def thrust_callback(self, thrust):
         self.thrust_start = time.time()
@@ -131,21 +131,16 @@ class RocketNode(Node):
         self.cur_thrust = np.array([thrust.x, -thrust.y])
 
     def run(self):
-    
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.done = True
 
         self.screen.fill((255, 255, 255))
-        if ((self.cur_thrust[0] != 0 or self.cur_thrust[1] != 0) and
-                time.time() > self.thrust_start + .6):
+        if ((self.cur_thrust[0] != 0 or self.cur_thrust[1] != 0) and time.time() > self.thrust_start + .6):
             self.cur_thrust = np.array([0, 0])
+
         self.rocket.update(self.cur_thrust)
 
         pygame.display.flip()
 
-        if time.time() > self.last_pub + 1.0/self.pub_rate - 1/self.refresh_rate:
+        if time.time() > self.last_pub + 1.0 / self.pub_rate - 1 / self.refresh_rate:
             # ROS2 Point iniitialization
             point = Point()
             point.x = self.rocket.pos[0]

@@ -63,7 +63,6 @@ class Rocket(pygame.sprite.Sprite):
         self.vel[1] += GRAVITY * ACC_MULTIPLIER
         self.vel += thrust * ACC_MULTIPLIER
         self.pos += self.vel
-        print(self.vel)
 
         if self.pos[0] > self._screen.get_width():
             self.pos[0] = self._screen.get_width()
@@ -109,7 +108,7 @@ class RocketNode(Node):
         self.thrust_start = 0
         pygame.init()
 
-        self.refresh_rate = 3
+        self.refresh_rate = 100
         # ROS2 recurring timer
         # init
         self.width = 480

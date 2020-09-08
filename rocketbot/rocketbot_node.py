@@ -4,7 +4,12 @@ A simulated Rocket with a ROS interface.  Just intended to serve as an
 alternative to turtlesim for playing with topics and messages.
 
 Publishes to:
-  location  (geomtry_msgs/Point)
+  location      (geometry_msgs/Point)
+  target        (geometry_msgs/Point)  Latest mouse click position
+                                       (published continously)
+  target_event  (geometry_msgs/Point)  Latest mouse click position
+                                       (only published when click occurs)
+
 
 Subscribes to:
   thrust    (geometry_msgs/Vector3)
@@ -23,7 +28,6 @@ Upgrade to ROS2: Mridul Pareek
 
 
 import pygame
-import random
 import numpy as np
 
 # imports for ROS2
@@ -77,11 +81,13 @@ class Rocket(pygame.sprite.Sprite):
             self.pos[1] = 0
             self.vel[1] = 0
 
-        if thrust[0] != 0 or thrust[1] != 0:
+        if thrust[1] != 0:
+            flame_height = -thrust[1] / GRAVITY * self.FLAME_HEIGHT
+            flame_height = min(flame_height, 2 * self.FLAME_HEIGHT)
             p1 = (self.pos[0], self.pos[1] + self.HEIGHT)
             p2 = (self.pos[0] + self.WIDTH - 1, self.pos[1] + self.HEIGHT)
             p3 = (self.pos[0] + self.WIDTH / 2,
-                  self.pos[1] + self.HEIGHT + self.FLAME_HEIGHT)
+                  self.pos[1] + self.HEIGHT + flame_height)
             pygame.draw.polygon(self._screen, (255, 0, 0), (p1, p2, p3), 0)
 
         p1 = self.pos
@@ -96,21 +102,23 @@ class RocketNode(Node):
 
     def __init__(self):
 
-        # ROS2 Changes
         super().__init__('rocket_bot')
-        self.subscription = self.create_subscription(
-            Vector3, 'thrust', self.thrust_callback, 10
-        )
+        self.node_done = False
+        self.subscription = self.create_subscription(Vector3, 'thrust',
+                                                     self.thrust_callback, 10)
         self.loc_pub = self.create_publisher(Point, 'location', 10)
-        ##
+        self.target_pub = self.create_publisher(Point, 'target', 10)
+        self.target_event_pub = self.create_publisher(Point, 'target_event', 10)
+        self.target = Point()
+        self.target.x = 240.0
+        self.target.y = 100.0
+        self.target.z = 0.0
 
         self.cur_thrust = np.array([0.0, 0.0])
         self.thrust_start = 0
         pygame.init()
 
         self.refresh_rate = 100
-        # ROS2 recurring timer
-        # init
         self.width = 480
         self.screen = pygame.display.set_mode((self.width, self.width))
         self.pub_rate = 10.0
@@ -131,8 +139,19 @@ class RocketNode(Node):
 
     def run(self):
 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.node_done = True
+            if event.type == pygame.MOUSEBUTTONUP:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                w, h = pygame.display.get_surface().get_size()
+                self.target.x = float(mouse_x)
+                self.target.y = float(h - mouse_y)
+                self.target_event_pub.publish(self.target)
+
         self.screen.fill((255, 255, 255))
-        if ((self.cur_thrust[0] != 0 or self.cur_thrust[1] != 0) and time.time() > self.thrust_start + .6):
+        if ((self.cur_thrust[0] != 0 or self.cur_thrust[1] != 0) and
+                time.time() > self.thrust_start + .6):
             self.cur_thrust = np.array([0, 0])
 
         self.rocket.update(self.cur_thrust)
@@ -140,23 +159,25 @@ class RocketNode(Node):
         pygame.display.flip()
 
         if time.time() > self.last_pub + 1.0 / self.pub_rate - 1 / self.refresh_rate:
-            # ROS2 Point iniitialization
             point = Point()
             point.x = self.rocket.pos[0]
             point.y = self.width - self.rocket.pos[1] - self.rocket.HEIGHT
             point.z = 0.0
             self.loc_pub.publish(point)
+            self.target_pub.publish(self.target)
             self.last_pub = time.time()
 
-# Adjusted the init sequence as per other ros2 examples.
+    def done(self):
+
+        return self.node_done
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = RocketNode()
-    rclpy.spin(node)
+    rclpy.spin_until_future_complete(node, node)
     node.destroy_node()
-    rclpy.is_shutdown()
+    rclpy.shutdown()
 
 
 if __name__ == "__main__":

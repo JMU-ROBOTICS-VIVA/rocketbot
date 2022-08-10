@@ -111,8 +111,8 @@ class RocketNode(Node):
         self.target_pub = self.create_publisher(Point, 'target', 10)
         self.target_event_pub = self.create_publisher(Point, 'target_event', 10)
         self.target = Point()
-        self.target.x = 240.0
-        self.target.y = 100.0
+        self.target.x = -1.0
+        self.target.y = -1.0
         self.target.z = 0.0
 
         self.cur_thrust = np.array([0.0, 0.0])
@@ -151,10 +151,17 @@ class RocketNode(Node):
                 self.target.y = float(h - mouse_y)
                 self.target_event_pub.publish(self.target)
 
-        self.screen.fill((255, 255, 255))
+        self.screen.fill((175, 245, 255))
         if ((self.cur_thrust[0] != 0 or self.cur_thrust[1] != 0) and
                 time.time() > self.thrust_start + .6):
             self.cur_thrust = np.array([0, 0])
+
+        if self.target.x > 0:
+            font = pygame.font.SysFont(None, 24)
+            img = font.render('x', True, (0, 0, 0))
+            self.screen.blit(img, (int(self.target.x-img.get_width()//2),
+                                   int(self.screen.get_height() -
+                                       self.target.y - img.get_height()//2)))
 
         self.rocket.update(self.cur_thrust)
 

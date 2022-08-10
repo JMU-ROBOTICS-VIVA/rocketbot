@@ -3,6 +3,8 @@
 A simulated Rocket with a ROS 2 interface.  This is intended to serve
 as an alternative to turtlesim for exploring topics and messages.
 
+![rocketbot_small](https://user-images.githubusercontent.com/4982892/183962345-6a29d699-85c7-43f6-a1ae-6038b538fe68.gif)
+
 ## Non-ROS Dependencies
 
 * pygame

@@ -33,6 +33,7 @@ import numpy as np
 # imports for ROS2
 import rclpy
 from rclpy.node import Node
+from rclpy.task import Future
 
 from pygame.locals import *
 
@@ -130,6 +131,7 @@ class RocketNode(Node):
         self.last_pub = 0.0
 
         self.timer = self.create_timer(1 / self.refresh_rate, self.run)
+        self.future = Future()
 
     def thrust_callback(self, thrust):
         self.thrust_start = time.time()
@@ -141,7 +143,7 @@ class RocketNode(Node):
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.node_done = True
+                self.future.set_result("exited")
             if event.type == pygame.MOUSEBUTTONUP:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 w, h = pygame.display.get_surface().get_size()
@@ -167,15 +169,11 @@ class RocketNode(Node):
             self.target_pub.publish(self.target)
             self.last_pub = time.time()
 
-    def done(self):
-
-        return self.node_done
-
 
 def main(args=None):
     rclpy.init(args=args)
     node = RocketNode()
-    rclpy.spin_until_future_complete(node, node)
+    rclpy.spin_until_future_complete(node, node.future)
     node.destroy_node()
     rclpy.shutdown()
 

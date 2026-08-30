@@ -27,6 +27,14 @@ Upgrade to ROS2: Mridul Pareek
 # http://www.gpwiki.org/index.php/Python:Pygame_basics
 
 
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message="Your system is avx2 capable but pygame was not built with support for it.*",
+    category=RuntimeWarning,
+)
+
 import pygame
 import numpy as np
 

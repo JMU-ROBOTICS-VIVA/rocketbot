@@ -17,7 +17,6 @@ setup(
     maintainer_email='nathan.r.sprague@gmail.com',
     description='Rocket Bot',
     license='TODO: License declaration',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'rocketbot_node = rocketbot.rocketbot_node:main'
